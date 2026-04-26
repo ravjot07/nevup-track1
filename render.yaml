@@ -22,6 +22,7 @@ databases:
     plan: free
     databaseName: nevup
     user: nevup
+    region: singapore
     postgresMajorVersion: "16"
 
 services:
@@ -29,7 +30,7 @@ services:
     name: nevup-api
     runtime: docker
     plan: free
-    region: oregon
+    region: singapore
     dockerfilePath: ./api/Dockerfile
     dockerContext: .
     healthCheckPath: /health
@@ -68,7 +69,7 @@ services:
     name: nevup-web
     runtime: docker
     plan: free
-    region: oregon
+    region: singapore
     dockerfilePath: ./web/Dockerfile
     dockerContext: .
     envVars:

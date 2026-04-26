@@ -32,7 +32,9 @@ gh repo create nevup-track1 --public --source=. --push
 
 1. https://console.upstash.com/login → sign in with GitHub.
 2. **Create Database** → name `nevup-redis` → region close to Render's
-   Oregon (e.g. `us-west-1`) → free plan → **Create**.
+   region (e.g. `ap-south-1` Mumbai ↔ Render `singapore`) → free
+   plan → **Create**. Cross-region Redis adds ~200ms per call — pin
+   both to the same continent.
 3. On the database page, copy the **Redis URL** under "Connect to your
    database" → "TLS" → it looks like `rediss://default:<token>@<host>:<port>`.
 
