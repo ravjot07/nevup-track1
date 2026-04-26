@@ -1,11 +1,4 @@
 #!/usr/bin/env node
-/**
- * Mint a 24h JWT for any seeded userId.
- *
- *   node scripts/mint-token.js f412f236-4edc-47a2-8f54-8763a6ed2ce8
- *
- * Uses the canonical kickoff secret. Override with JWT_SECRET if needed.
- */
 import crypto from 'node:crypto';
 
 const SECRET =

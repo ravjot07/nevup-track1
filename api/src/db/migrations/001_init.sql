@@ -1,11 +1,3 @@
--- NevUp Track 1 — initial schema
--- Notes:
---   * trade_id is the natural primary key; ON CONFLICT (trade_id) gives us
---     idempotent POST /trades for free, no separate idempotency table needed.
---   * NUMERIC(18,8) is mandated by the canonical schema for prices/quantities.
---   * Partial index on closed trades dramatically shrinks the index for the
---     hottest read pattern (rolling metrics on closed trades only).
-
 CREATE TABLE IF NOT EXISTS users (
   id   UUID PRIMARY KEY,
   name TEXT NOT NULL,
@@ -50,7 +42,6 @@ CREATE INDEX IF NOT EXISTS trades_user_session ON trades (user_id, session_id);
 CREATE INDEX IF NOT EXISTS trades_user_closed  ON trades (user_id, exit_at DESC) WHERE status = 'closed';
 CREATE INDEX IF NOT EXISTS trades_session_exit ON trades (session_id, exit_at);
 
--- Pre-aggregated read tables. Worker writes; API reads index-only.
 CREATE TABLE IF NOT EXISTS metrics_hourly (
   user_id            UUID        NOT NULL,
   bucket             TIMESTAMPTZ NOT NULL,

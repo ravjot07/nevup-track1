@@ -61,9 +61,6 @@ export default function App() {
     fetch(`${baseUrl}/sessions/${activeUser.id}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
-    // We don't have a /trades?userId= endpoint by spec.
-    // Instead, infer recent trades by listing the user's most recent session
-    // and pulling its trade list — a one-call summary suitable for the dashboard.
     fetch(`${baseUrl}/users/${activeUser.id}/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })

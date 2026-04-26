@@ -1,13 +1,3 @@
-// Smoke + correctness tests. Run via `npm test` from inside the api container
-// (it has DATABASE_URL and REDIS_URL wired up). Reviewer command:
-//
-//   docker compose exec api npm test
-//
-// The tests use Fastify's in-process inject(); no network listener is needed.
-//
-// All tests are idempotent against the seeded dataset — they POST trades with
-// fresh UUIDs and never delete existing ones.
-
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
@@ -55,7 +45,6 @@ after(async () => {
   try {
     await getRedis().quit();
   } catch {
-    // ignore — best-effort shutdown
   }
 });
 
@@ -226,7 +215,6 @@ test('POST /trades with bad enum → 400 with traceId', async () => {
 });
 
 test('GET /sessions/:id returns full trade list and 403s cross-tenant', async () => {
-  // Pick an existing seeded session for Alex
   const r = await pool.query(
     `SELECT id FROM sessions WHERE user_id = $1 LIMIT 1`,
     [ALEX]

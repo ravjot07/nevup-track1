@@ -6,12 +6,6 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-nevup}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-nevup}
       POSTGRES_DB: ${POSTGRES_DB:-nevup}
-    # Defaults are too tight for the 200 RPS target. Raise max_connections so
-    # the API + worker pools don't exhaust pg, bump shared_buffers so hot
-    # working set stays in RAM, and disable synchronous_commit to remove the
-    # fsync barrier from the trade write path. The trade table is durable on
-    # crash to within a few hundred ms of writes, which is acceptable for a
-    # behavioral analytics journal (we are not running money settlement here).
     command:
       - "postgres"
       - "-c"
@@ -91,9 +85,6 @@ services:
       REDIS_URL: redis://redis:6379
       LOG_LEVEL: ${LOG_LEVEL:-info}
       NODE_ENV: production
-      # Keep the worker's pg footprint small so it never starves the API hot
-      # path. Async metric work is allowed to lag — that is the entire point
-      # of moving it off the write path.
       PG_POOL_MAX: "8"
 
   web:

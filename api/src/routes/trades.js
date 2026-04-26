@@ -78,7 +78,6 @@ function deriveOutcomeAndPnl(t) {
 }
 
 export default async function tradeRoutes(app) {
-  // POST /trades — idempotent on tradeId.
   app.post(
     '/trades',
     { schema: { body: tradeInputSchema } },
@@ -89,9 +88,6 @@ export default async function tradeRoutes(app) {
 
       const { outcome, pnl } = deriveOutcomeAndPnl(t);
 
-      // Single round-trip: ensure the session row exists AND insert the trade.
-      // The CTE form keeps this as one network call to Postgres, which is the
-      // single biggest p95 win on the write path under load.
       const insertSql = `
         WITH new_session AS (
           INSERT INTO sessions (id, user_id, started_at)
@@ -143,10 +139,6 @@ export default async function tradeRoutes(app) {
         row = existing.rows[0];
       }
 
-      // Fire-and-forget the metric pipeline. The HTTP response is intentionally
-      // not held back by the queue write — that's the entire point of the
-      // async pipeline ("must not block the write path"). Producer errors are
-      // logged but never surface to the client.
       if (isNew && row.status === 'closed') {
         publishEvent('trade.closed', {
           tradeId: row.trade_id,
@@ -168,7 +160,6 @@ export default async function tradeRoutes(app) {
     }
   );
 
-  // GET /trades/:tradeId
   app.get('/trades/:tradeId', async (req, reply) => {
     const { tradeId } = req.params;
     const r = await pool.query('SELECT * FROM trades WHERE trade_id = $1', [tradeId]);

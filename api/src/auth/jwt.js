@@ -6,10 +6,6 @@ if (!SECRET) {
   throw new Error('JWT_SECRET is required');
 }
 
-/**
- * Verify the bearer token and attach req.user = { sub, role, name, iat, exp }.
- * Public routes register `config.public = true` to skip this hook.
- */
 export function authPlugin(app) {
   app.addHook('onRequest', async (req, reply) => {
     if (req.routeOptions?.config?.public) return;
@@ -40,12 +36,6 @@ export function authPlugin(app) {
     }
   });
 
-  /**
-   * Tenancy guard. Pass the userId resolved from the request — typically
-   * req.params.userId, but for /trades it's the body's userId.
-   *
-   * Returns true if access is allowed; otherwise sends 403 and returns false.
-   */
   app.decorateRequest('assertTenant', null);
   app.addHook('preHandler', async (req) => {
     req.assertTenant = (resourceUserId, reply) => {
@@ -64,9 +54,6 @@ export function authPlugin(app) {
   });
 }
 
-/**
- * Convenience for tests + the admin UI's "mint dev token" button.
- */
 export function signDevToken(userId, name = 'Dev User', ttlSeconds = 86400) {
   const now = Math.floor(Date.now() / 1000);
   return jwt.sign(

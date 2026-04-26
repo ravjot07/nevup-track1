@@ -1,22 +1,3 @@
-# Render Blueprint for NevUp Track 1.
-#
-# Provisions:
-#   - 1 free Postgres database (90-day trial, plenty for hackathon scoring)
-#   - 1 free Web Service: API + embedded worker (Docker, Node 20)
-#   - 1 free Web Service: admin UI (Docker, Nginx static)
-#
-# Redis is NOT provisioned by Render's free tier in a way that's reliable
-# for this workload. We use Upstash Redis (free tier, no card required)
-# and inject REDIS_URL as a manual secret. See render-deploy.md.
-#
-# Free tier caveats (acceptable for a 72-hour hackathon submission):
-#   - Web services sleep after 15 min idle. First request after sleep
-#     takes ~30s to wake. /health returns 200 once warm.
-#   - Free Postgres is dropped 90 days after creation.
-#
-# Apply with: https://render.com/deploy?repo=<your-github-url>
-# Or via the Render dashboard: New → Blueprint → connect repo.
-
 databases:
   - name: nevup-pg
     plan: free
@@ -54,15 +35,12 @@ services:
       - key: EMBED_WORKER
         value: "true"
       - key: JWT_SECRET
-        # canonical kickoff secret — same value across all three tracks
         value: 97791d4db2aa5f689c3cc39356ce35762f0a73aa70923039d8ef72a2840a1b02
       - key: DATABASE_URL
         fromDatabase:
           name: nevup-pg
           property: connectionString
       - key: REDIS_URL
-        # Set manually after provisioning Upstash Redis.
-        # See render-deploy.md for the exact step.
         sync: false
 
   - type: web
@@ -74,11 +52,6 @@ services:
     dockerContext: .
     envVars:
       - key: PORT
-        # Tells Render to forward HTTPS traffic to the Nginx port 80.
-        # Nginx itself reads $PORT via the templated listen directive.
         value: "80"
       - key: VITE_API_BASE_URL
-        # Optional. The web bundle auto-derives the API URL from the
-        # *-web.onrender.com → *-api.onrender.com convention at runtime
-        # (see web/src/api.js), so leaving this unset is fine.
         sync: false

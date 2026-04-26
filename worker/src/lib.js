@@ -29,9 +29,6 @@ export const pool = new Pool({
   query_timeout: 10_000,
 });
 
-// Mirror of buildRedisOptions in api/src/queue/producer.js so the
-// standalone worker container is just as resilient on managed
-// (TLS-only) providers like Upstash.
 function buildRedisOptions(url) {
   const opts = {
     maxRetriesPerRequest: 5,
@@ -50,7 +47,6 @@ function buildRedisOptions(url) {
       opts.tls = { rejectUnauthorized: true, servername: parsed.hostname };
     }
   } catch {
-    // ignore — let ioredis surface the malformed-URL error
   }
   return opts;
 }

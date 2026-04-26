@@ -19,7 +19,6 @@ const debriefSchema = {
 };
 
 export default async function sessionRoutes(app) {
-  // GET /sessions/:sessionId — returns SessionSummary with full trade list.
   app.get('/sessions/:sessionId', async (req, reply) => {
     const { sessionId } = req.params;
 
@@ -88,7 +87,6 @@ export default async function sessionRoutes(app) {
     });
   });
 
-  // POST /sessions/:sessionId/debrief
   app.post(
     '/sessions/:sessionId/debrief',
     { schema: { body: debriefSchema } },

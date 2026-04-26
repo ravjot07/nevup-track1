@@ -1,9 +1,3 @@
-/**
- * Metric 1 — Plan Adherence Score
- *
- * Rolling 10-trade average of planAdherence ratings per user.
- * Recomputed on every closed trade because the rolling window slides.
- */
 export async function recomputePlanAdherence(client, ev) {
   await client.query(
     `WITH last10 AS (
@@ -31,18 +25,12 @@ export async function recomputePlanAdherence(client, ev) {
   );
 }
 
-/**
- * Bonus — incremental hourly+daily aggregates for the read API.
- * The trades table is the source of truth; these aggregates exist purely
- * so GET /users/:id/metrics can be answered with index-only scans.
- */
 export async function bumpAggregates(client, ev) {
   if (!ev.exitAt) return;
   const win = ev.outcome === 'win' ? 1 : 0;
   const pnl = Number(ev.pnl ?? 0);
   const pa = ev.planAdherence ?? null;
 
-  // Hourly bucket
   await client.query(
     `INSERT INTO metrics_hourly (user_id, bucket, trade_count, win_count, pnl, avg_plan_adherence)
      VALUES ($1, date_trunc('hour', $2::timestamptz), 1, $3, $4, $5)
@@ -59,7 +47,6 @@ export async function bumpAggregates(client, ev) {
     [ev.userId, ev.exitAt, win, pnl, pa]
   );
 
-  // Daily bucket
   await client.query(
     `INSERT INTO metrics_daily (user_id, bucket, trade_count, win_count, pnl, avg_plan_adherence)
      VALUES ($1, date_trunc('day', $2::timestamptz), 1, $3, $4, $5)

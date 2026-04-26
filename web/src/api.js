@@ -1,10 +1,3 @@
-// Resolve the API base URL with this priority:
-//   1. Vite build-arg VITE_API_BASE_URL (used in docker-compose where we
-//      set it to http://localhost:3000)
-//   2. Convention: if the page is served from <name>-web.onrender.com,
-//      assume the API lives at <name>-api.onrender.com (matches the
-//      render.yaml service naming).
-//   3. Last-resort default for raw `vite dev` runs.
 function resolveBase() {
   const fromBuild = import.meta.env.VITE_API_BASE_URL;
   if (fromBuild) return fromBuild;

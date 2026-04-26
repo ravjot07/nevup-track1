@@ -1,18 +1,3 @@
-# fly.toml for the NevUp Track 1 API service.
-#
-# Build context is the repo root, dockerfile lives at api/Dockerfile so the
-# image can COPY the OpenAPI yaml + seed CSV alongside the source.
-#
-# Deploy:
-#   fly apps create nevup-api
-#   fly postgres create --name nevup-pg --region iad --vm-size shared-cpu-1x --volume-size 1
-#   fly postgres attach nevup-pg --app nevup-api      # sets DATABASE_URL secret
-#   fly redis create --name nevup-redis --region iad  # uses Upstash; copies REDIS_URL
-#   fly secrets set --app nevup-api \
-#     JWT_SECRET=97791d4db2aa5f689c3cc39356ce35762f0a73aa70923039d8ef72a2840a1b02 \
-#     REDIS_URL=$(fly redis status nevup-redis --json | jq -r .Url)
-#   fly deploy --config fly/api.toml --dockerfile api/Dockerfile
-
 app = "nevup-api"
 primary_region = "iad"
 

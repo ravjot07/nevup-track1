@@ -1,5 +1,3 @@
-# Build context for this Dockerfile is the repo root (matches api/Dockerfile)
-# so docker-compose, Fly, and standalone builds all share the same shape.
 FROM node:20-alpine
 
 WORKDIR /app

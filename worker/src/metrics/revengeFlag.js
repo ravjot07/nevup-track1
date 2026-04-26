@@ -1,12 +1,3 @@
-/**
- * Metric 2 — Revenge Flag
- *
- * If a trade opens within 90 seconds of a *losing* close AND
- * emotionalState is anxious or fearful, mark revengeFlag = true.
- *
- * The previous trade for the same user is the one with the largest
- * exit_at strictly less than this trade's entry_at and status='closed'.
- */
 export async function applyRevengeFlag(client, ev) {
   const result = await client.query(
     `WITH this_trade AS (

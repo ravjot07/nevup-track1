@@ -1,17 +1,3 @@
-// NevUp Track 1 — load test
-// Target: 200 closed-trade events/sec for 60 s, p95 write latency <= 150 ms.
-//
-// Run:
-//   docker compose up -d
-//   k6 run --out json=load/results/raw.json load/trades.k6.js
-//   # to render the HTML report:
-//   K6_REPORT=load/results/report.html k6 run load/trades.k6.js
-//
-// The script self-mints a JWT per VU using the canonical kickoff secret and
-// then issues POST /trades with random tradeIds. We deliberately use a fresh
-// session and trade UUIDs so there are no idempotency hits during the run —
-// idempotency is covered by the unit tests, not this load test.
-
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Trend, Counter } from 'k6/metrics';

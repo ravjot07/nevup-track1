@@ -1,17 +1,3 @@
-# fly.toml for the NevUp Track 1 metrics worker.
-#
-# This service has no inbound HTTP — it just consumes from Redis Streams and
-# writes aggregates back to Postgres. We deliberately keep no min_machines
-# floor because losing the worker for a few seconds is recoverable (events
-# stay in the stream and resume from the consumer-group cursor on restart).
-#
-# Deploy:
-#   fly apps create nevup-worker
-#   fly secrets set --app nevup-worker \
-#     DATABASE_URL=<same as nevup-api> \
-#     REDIS_URL=<same as nevup-api>
-#   fly deploy --config fly/worker.toml --dockerfile worker/Dockerfile
-
 app = "nevup-worker"
 primary_region = "iad"
 
@@ -22,8 +8,6 @@ primary_region = "iad"
   NODE_ENV = "production"
   LOG_LEVEL = "info"
   PG_POOL_MAX = "8"
-
-# No [http_service] — worker is a pure background consumer.
 
 [[vm]]
   size = "shared-cpu-1x"

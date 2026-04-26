@@ -2,9 +2,6 @@ import { pool } from '../db/pool.js';
 import { errorBody } from '../lib/errors.js';
 
 export default async function userRoutes(app) {
-  // GET /users/:userId/metrics
-  // Reads exclusively from pre-aggregated tables (metrics_hourly / metrics_daily)
-  // populated by the worker. No JOINs across the trades table at read time.
   app.get('/users/:userId/metrics', async (req, reply) => {
     const { userId } = req.params;
     if (!req.assertTenant(userId, reply)) return;
@@ -27,14 +24,9 @@ export default async function userRoutes(app) {
     let bucketExpr = 'bucket';
     if (granularity === 'daily') table = 'metrics_daily';
     if (granularity === 'rolling30d') {
-      // rolling30d = last 30 days of daily buckets, summed.
-      // We still expose them as the timeseries to keep the response
-      // uniform; the only thing that changes is the lower bound.
       table = 'metrics_daily';
       const thirty = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
       if (new Date(from) < new Date(thirty)) {
-        // override 'from' to enforce 30-day window
-        // (we mutate the query value rather than constants — safe, scoped)
         // eslint-disable-next-line no-param-reassign
         req.query.from = thirty;
       }
@@ -62,9 +54,6 @@ export default async function userRoutes(app) {
       [userId]
     );
 
-    // session tilt is anchored to the session's actual start (sessions.started_at),
-    // not the aggregate row's updated_at — the latter would always be "now()" and
-    // exclude historical rows from the date range.
     const tiltRes = await pool.query(
       `SELECT AVG(st.ratio)::float AS avg_ratio
        FROM session_tilt st
@@ -123,10 +112,6 @@ export default async function userRoutes(app) {
     });
   });
 
-  // GET /users/:userId/profile
-  // Lightweight behavioural profile derived from aggregates. The "real"
-  // profile is the Track 2 deliverable; what we return here is a deterministic
-  // structural summary so Track 3 frontends have non-empty data to render.
   app.get('/users/:userId/profile', async (req, reply) => {
     const { userId } = req.params;
     if (!req.assertTenant(userId, reply)) return;
@@ -141,10 +126,6 @@ export default async function userRoutes(app) {
         .send(errorBody('USER_NOT_FOUND', 'No user with that id.', req.id));
     }
 
-    // Derive dominant pathology candidates from the structural signals:
-    // - many revenge_flag = revenge_trading
-    // - many overtrading events = overtrading
-    // - high mean session_tilt = session_tilt
     const sigsRes = await pool.query(
       `WITH r AS (
          SELECT COUNT(*) FILTER (WHERE revenge_flag) AS revenge_trades,
@@ -192,7 +173,6 @@ export default async function userRoutes(app) {
       });
     }
 
-    // Hydrate evidence sets for the top pathology
     if (dominant.length > 0 && dominant[0].pathology === 'revenge_trading') {
       const e = await pool.query(
         `SELECT trade_id, session_id FROM trades
@@ -204,7 +184,6 @@ export default async function userRoutes(app) {
       dominant[0].evidenceSessions = [...new Set(e.rows.map((r) => r.session_id))];
     }
 
-    // Peak performance window — best UTC hour by win rate
     const peakRes = await pool.query(
       `SELECT EXTRACT(HOUR FROM entry_at)::int AS hour,
               COUNT(*) FILTER (WHERE outcome = 'win')::int AS w,

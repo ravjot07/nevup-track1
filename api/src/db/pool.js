@@ -3,10 +3,6 @@ import { logger } from '../lib/logger.js';
 
 const { Pool, types } = pg;
 
-// Return NUMERIC as JS number so JSON serialization is clean.
-// The seeded prices/quantities never exceed safe-integer range; for an
-// exchange-grade system we'd swap in a Decimal lib, but for the hackathon
-// this keeps the API output shape identical to the OpenAPI examples.
 types.setTypeParser(1700, (v) => (v === null ? null : parseFloat(v)));
 
 export const pool = new Pool({

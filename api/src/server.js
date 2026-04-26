@@ -27,10 +27,6 @@ export async function buildApp() {
     genReqId: () => randomUUID(),
     requestIdHeader: 'x-trace-id',
     requestIdLogLabel: 'traceId',
-    // We emit our own structured one-line-per-request log in the onResponse
-    // hook below (matches the spec's traceId/userId/latency/statusCode shape).
-    // Letting Fastify also log req/res automatically would mean 3 records per
-    // request — measurably costly at the 200 RPS load-test target.
     disableRequestLogging: true,
     bodyLimit: 1024 * 256,
     ajv: { customOptions: { coerceTypes: false, removeAdditional: false } },
@@ -42,7 +38,6 @@ export async function buildApp() {
     exposedHeaders: ['x-trace-id'],
   });
 
-  // Per-request structured log: traceId, userId, latency, statusCode.
   app.addHook('onResponse', (req, reply, done) => {
     req.log.info(
       {
@@ -58,12 +53,10 @@ export async function buildApp() {
     done();
   });
 
-  // Echo trace id on every response — error or success.
   app.addHook('onSend', async (req, reply) => {
     reply.header('x-trace-id', req.id);
   });
 
-  // Validation errors → 400 with envelope
   app.setErrorHandler((err, req, reply) => {
     if (err.validation) {
       return reply
@@ -89,10 +82,8 @@ export async function buildApp() {
 
   authPlugin(app);
 
-  // ── Public routes ──
   app.register(healthRoutes);
 
-  // /docs serves the OpenAPI YAML used as the contract.
   app.get(
     '/docs',
     { config: { public: true } },
@@ -108,7 +99,6 @@ export async function buildApp() {
           reply.type('application/yaml');
           return buf;
         } catch {
-          // try next
         }
       }
       return reply
@@ -117,7 +107,6 @@ export async function buildApp() {
     }
   );
 
-  // /docs.json — same spec but JSON (some clients prefer it)
   app.get(
     '/docs.json',
     { config: { public: true } },
@@ -132,7 +121,6 @@ export async function buildApp() {
           const buf = await fs.readFile(p, 'utf8');
           return yaml.parse(buf);
         } catch {
-          // try next
         }
       }
       return reply
@@ -141,8 +129,6 @@ export async function buildApp() {
     }
   );
 
-  // Dev-only token mint for the admin UI / curl examples.
-  // Public route — purely a developer convenience. Returns a 24h trader token.
   app.get(
     '/auth/dev-token/:userId',
     { config: { public: true } },
@@ -167,7 +153,6 @@ export async function buildApp() {
     }
   );
 
-  // ── Protected routes ──
   app.register(tradeRoutes);
   app.register(sessionRoutes);
   app.register(userRoutes);
@@ -185,9 +170,6 @@ export async function start() {
     await seedFromCsv();
   }
 
-  // Log a redacted form of REDIS_URL at boot so deploy logs immediately
-  // show *which* Redis we're talking to and over which scheme. Saves a
-  // round-trip with reviewers when a wrong env var is the problem.
   if (process.env.REDIS_URL) {
     try {
       const u = new URL(process.env.REDIS_URL);
@@ -203,21 +185,12 @@ export async function start() {
   await ensureConsumerGroup();
 
   const app = await buildApp();
-  // Render (and most PaaS) inject PORT; honour it before our own
-  // API_PORT default so the container Just Works on those hosts.
   const port = Number(process.env.PORT || process.env.API_PORT || 3000);
   await app.listen({ host: '0.0.0.0', port });
   logger.info({ port }, 'API listening');
 
-  // Embedded worker mode for free-tier hosts (Render, Koyeb, etc.) where
-  // running a separate worker container costs extra. The Redis Streams
-  // bus is unchanged — XADD on the producer side, XREADGROUP on the
-  // consumer side, just in the same Node process. The metric pipeline is
-  // still asynchronous with respect to the HTTP write path.
   if (process.env.EMBED_WORKER === 'true') {
     logger.info('starting embedded worker loop');
-    // From /app/src/server.js → ../worker/src/index.js = /app/worker/src/index.js,
-    // matching the layout the API Dockerfile creates with COPY worker/src ./worker/src.
     const { consume } = await import('../worker/src/index.js');
     consume().catch((err) => {
       logger.error({ err }, 'embedded worker loop crashed');

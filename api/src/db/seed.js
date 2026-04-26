@@ -5,7 +5,6 @@ import { pool, withClient } from './pool.js';
 import { logger } from '../lib/logger.js';
 
 const SEED_PATH = process.env.SEED_PATH || '/app/nevup_seed_dataset.csv';
-// Fallback for non-container runs (tests, local dev outside docker)
 const FALLBACK_PATH = path.resolve(process.cwd(), '../nevup_seed_dataset.csv');
 
 function toNumOrNull(v) {
@@ -26,7 +25,6 @@ function toStrOrNull(v) {
 }
 
 export async function seedFromCsv() {
-  // Don't reseed if data is already there.
   const { rows } = await pool.query('SELECT COUNT(*)::int AS c FROM trades');
   if (rows[0].c > 0) {
     logger.info({ existing: rows[0].c }, 'trades already seeded; skipping');
@@ -45,7 +43,6 @@ export async function seedFromCsv() {
   const records = parse(buf, { columns: true, skip_empty_lines: true });
   logger.info({ count: records.length }, 'parsed seed CSV');
 
-  // Build distinct user + session sets.
   const users = new Map();
   const sessions = new Map();
   for (const r of records) {
@@ -82,8 +79,6 @@ export async function seedFromCsv() {
         );
       }
 
-      // Bulk-insert trades. We use a single multi-row INSERT in batches to keep
-      // it fast on cold start without dragging in pg-copy-streams.
       const BATCH = 200;
       for (let i = 0; i < records.length; i += BATCH) {
         const slice = records.slice(i, i + BATCH);
@@ -134,17 +129,12 @@ export async function seedFromCsv() {
 
   logger.info({ users: users.size, sessions: sessions.size, trades: records.length }, 'seed complete');
 
-  // Replay all closed trades into the metric aggregates so that
-  // GET /users/:id/metrics returns meaningful values from the moment
-  // the reviewer hits the endpoint after `docker compose up`.
   await replayMetrics();
 }
 
 async function replayMetrics() {
   logger.info('replaying metrics for seeded trades');
 
-  // Re-derive revenge flag deterministically. (The CSV ships with one already
-  // computed, but recomputing proves the algorithm is correct end-to-end.)
   await pool.query(`
     WITH ordered AS (
       SELECT
@@ -166,7 +156,6 @@ async function replayMetrics() {
       AND t.emotional_state IN ('anxious','fearful')
   `);
 
-  // metrics_hourly aggregate
   await pool.query(`
     INSERT INTO metrics_hourly (user_id, bucket, trade_count, win_count, pnl, avg_plan_adherence)
     SELECT
@@ -186,7 +175,6 @@ async function replayMetrics() {
       avg_plan_adherence = EXCLUDED.avg_plan_adherence
   `);
 
-  // metrics_daily aggregate
   await pool.query(`
     INSERT INTO metrics_daily (user_id, bucket, trade_count, win_count, pnl, avg_plan_adherence)
     SELECT
@@ -206,7 +194,6 @@ async function replayMetrics() {
       avg_plan_adherence = EXCLUDED.avg_plan_adherence
   `);
 
-  // win rate by emotional state
   await pool.query(`
     INSERT INTO winrate_by_emotion (user_id, emotional_state, wins, losses)
     SELECT
@@ -222,9 +209,6 @@ async function replayMetrics() {
       losses = EXCLUDED.losses
   `);
 
-  // session tilt — proportion of trades that follow a losing trade in the same session.
-  // Each session belongs to exactly one user, so (session_id, user_id) is functionally
-  // determined; grouping by both is equivalent and side-steps the lack of MAX(uuid).
   await pool.query(`
     WITH ordered AS (
       SELECT
@@ -253,7 +237,6 @@ async function replayMetrics() {
       updated_at     = EXCLUDED.updated_at
   `);
 
-  // overtrading events — sliding 30-minute windows with > 10 entries
   await pool.query(`
     WITH window_counts AS (
       SELECT
@@ -273,7 +256,6 @@ async function replayMetrics() {
     WHERE trade_count > 10
   `);
 
-  // rolling-10 plan adherence — keep the most recent value per user
   await pool.query(`
     WITH ranked AS (
       SELECT

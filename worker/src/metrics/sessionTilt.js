@@ -1,14 +1,3 @@
-/**
- * Metric 3 — Session Tilt Index
- *
- * Ratio of (loss-following trades / total trades) for the trade's session.
- * A "loss-following" trade is one whose immediately preceding trade in the
- * same session ended in a loss.
- *
- * Recomputes from scratch on every close — small per-session row count
- * (typically 5-16) makes this trivial; pre-aggregating per partial session
- * would add invariant maintenance for no meaningful win.
- */
 export async function recomputeSessionTilt(client, ev) {
   await client.query(
     `WITH ordered AS (

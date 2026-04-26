@@ -1,9 +1,3 @@
-/**
- * Metric 4 — Win Rate by Emotional State
- *
- * Maintain a per-user running win/loss counter, keyed by emotional state.
- * Increment on each closed trade.
- */
 export async function bumpWinRateByEmotion(client, ev) {
   if (!ev.emotionalState || !ev.outcome) return;
 

@@ -1,8 +1,3 @@
-/**
- * Build the canonical NevUp error envelope.
- * Every 4xx/5xx response body must include { error, message, traceId }
- * matching the OpenAPI ErrorResponse schema.
- */
 export function errorBody(error, message, traceId) {
   return { error, message, traceId };
 }

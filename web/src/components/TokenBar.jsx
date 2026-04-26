@@ -17,7 +17,6 @@ export default function TokenBar({ users, activeUser, onSelect, token, onMint, t
       setCopied(true);
       setTimeout(() => setCopied(false), 1200);
     } catch {
-      // browser may block clipboard in insecure contexts
     }
   };
 

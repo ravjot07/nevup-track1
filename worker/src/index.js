@@ -21,10 +21,6 @@ async function processClosedTrade(ev) {
   try {
     await client.query('BEGIN');
 
-    // Run all 5 metrics in a single transaction so that if any one fails,
-    // none of the aggregate state is corrupted. Because aggregates are
-    // derived (not source of truth), retries are safe — the trades row
-    // itself is unchanged in this transaction except for revenge_flag.
     await applyRevengeFlag(client, ev);
     await recomputeSessionTilt(client, ev);
     await bumpWinRateByEmotion(client, ev);
@@ -49,7 +45,6 @@ async function processClosedTrade(ev) {
 }
 
 function parseEntries(streams) {
-  // ioredis returns: [[streamKey, [[id, [field, value, field, value, ...]], ...]]]
   const out = [];
   if (!streams) return out;
   for (const [, entries] of streams) {
@@ -62,10 +57,6 @@ function parseEntries(streams) {
   return out;
 }
 
-// Exported so the API process can embed the worker loop on free-tier hosts
-// where running a separate worker container is paid (e.g. Render). The
-// metric pipeline is still asynchronous w.r.t. the HTTP write path —
-// XADD → XREADGROUP — only the OS process boundary collapses.
 export async function consume() {
   await ensureConsumerGroup();
   logger.info(
@@ -73,7 +64,6 @@ export async function consume() {
     'worker starting consume loop'
   );
 
-  // Drain any messages assigned but unacked from a previous crash first.
   let cursor = '0';
   // eslint-disable-next-line no-constant-condition
   while (true) {
@@ -89,7 +79,6 @@ export async function consume() {
 
       if (entries.length === 0) {
         if (cursor !== 'live') {
-          // Backlog drained — switch to live tail
           cursor = 'live';
         }
         continue;
@@ -102,8 +91,6 @@ export async function consume() {
             const ev = JSON.parse(e.fields.data);
             await processClosedTrade(ev);
           } else if (type === 'overtrading.detected') {
-            // Currently a no-op fan-out; keeps the channel hot for future
-            // notification pipelines without changing the producer.
             logger.debug({ data: e.fields.data }, 'overtrading.detected observed');
           } else {
             logger.warn({ type }, 'unknown event type');
@@ -111,9 +98,6 @@ export async function consume() {
           await redis.xack(STREAM_KEY, CONSUMER_GROUP, e.id);
         } catch (err) {
           logger.error({ err, id: e.id, type }, 'event handler failed');
-          // Don't ack — XPENDING will surface it via /health and we can
-          // reclaim with XAUTOCLAIM in a future iteration. For now we
-          // sleep briefly so a poison pill doesn't pin the CPU.
           await new Promise((r) => setTimeout(r, 250));
         }
       }
@@ -124,9 +108,6 @@ export async function consume() {
   }
 }
 
-// Auto-run the loop only when this file is the process entry point
-// (i.e. the standalone worker container). When the API embeds us, it
-// imports `consume` directly and skips this branch.
 const isEntry = import.meta.url === `file://${process.argv[1]}`;
 if (isEntry) {
   consume().catch((err) => {
