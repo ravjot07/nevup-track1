@@ -1,0 +1,3 @@
+Reports land here after `k6 run load/trades.k6.js`. Committed:
+- report.html (human-readable)
+- summary.json (raw stats)

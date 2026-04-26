@@ -1,0 +1,40 @@
+# fly.toml for the NevUp Track 1 admin dashboard (React + Tailwind, served
+# by Nginx).
+#
+# Build args plumb the public API base URL into the Vite bundle. For Fly,
+# point this at the deployed nevup-api hostname.
+#
+# Deploy:
+#   fly apps create nevup-web
+#   fly deploy --config fly/web.toml \
+#     --dockerfile web/Dockerfile \
+#     --build-arg VITE_API_BASE_URL=https://nevup-api.fly.dev \
+#     --build-arg VITE_JWT_SECRET=97791d4db2aa5f689c3cc39356ce35762f0a73aa70923039d8ef72a2840a1b02
+
+app = "nevup-web"
+primary_region = "iad"
+
+[build]
+  dockerfile = "web/Dockerfile"
+
+  [build.args]
+    VITE_API_BASE_URL = "https://nevup-api.fly.dev"
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    grace_period = "10s"
+    interval = "30s"
+    method = "GET"
+    path = "/"
+    protocol = "http"
+    timeout = "3s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

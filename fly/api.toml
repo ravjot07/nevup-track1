@@ -1,0 +1,49 @@
+# fly.toml for the NevUp Track 1 API service.
+#
+# Build context is the repo root, dockerfile lives at api/Dockerfile so the
+# image can COPY the OpenAPI yaml + seed CSV alongside the source.
+#
+# Deploy:
+#   fly apps create nevup-api
+#   fly postgres create --name nevup-pg --region iad --vm-size shared-cpu-1x --volume-size 1
+#   fly postgres attach nevup-pg --app nevup-api      # sets DATABASE_URL secret
+#   fly redis create --name nevup-redis --region iad  # uses Upstash; copies REDIS_URL
+#   fly secrets set --app nevup-api \
+#     JWT_SECRET=97791d4db2aa5f689c3cc39356ce35762f0a73aa70923039d8ef72a2840a1b02 \
+#     REDIS_URL=$(fly redis status nevup-redis --json | jq -r .Url)
+#   fly deploy --config fly/api.toml --dockerfile api/Dockerfile
+
+app = "nevup-api"
+primary_region = "iad"
+
+[build]
+  dockerfile = "api/Dockerfile"
+
+[env]
+  NODE_ENV = "production"
+  API_PORT = "3000"
+  LOG_LEVEL = "info"
+  RUN_MIGRATIONS = "true"
+  RUN_SEED = "true"
+  PG_POOL_MAX = "30"
+  UV_THREADPOOL_SIZE = "16"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ["app"]
+
+  [[http_service.checks]]
+    grace_period = "20s"
+    interval = "10s"
+    method = "GET"
+    path = "/health"
+    protocol = "http"
+    timeout = "3s"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

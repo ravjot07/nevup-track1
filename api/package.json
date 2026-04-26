@@ -1,0 +1,30 @@
+{
+  "name": "nevup-track1-api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "NevUp Track 1 — System of Record HTTP API",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test test/"
+  },
+  "dependencies": {
+    "@fastify/cors": "^9.0.1",
+    "csv-parse": "^5.5.6",
+    "fastify": "^4.28.1",
+    "ioredis": "^5.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.13.0",
+    "pino": "^9.4.0",
+    "pino-pretty": "^11.2.2",
+    "uuid": "^10.0.0",
+    "yaml": "^2.5.1"
+  },
+  "devDependencies": {
+    "supertest": "^7.0.0"
+  }
+}

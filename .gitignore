@@ -1,0 +1,27 @@
+node_modules/
+dist/
+build/
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+.DS_Store
+.vscode/
+.idea/
+coverage/
+.cache/
+.parcel-cache/
+
+# Build outputs
+web/dist/
+api/dist/
+
+# Local docker volumes shouldn't be checked in
+postgres-data/
+redis-data/
+
+# k6 raw output is regenerated on each run; the HTML report and JSON summary
+# are committed (load/results/report.html, load/results/summary.json) so
+# reviewers can open them without re-running the test.
+load/results/raw.json
