@@ -200,7 +200,9 @@ export async function start() {
   // still asynchronous with respect to the HTTP write path.
   if (process.env.EMBED_WORKER === 'true') {
     logger.info('starting embedded worker loop');
-    const { consume } = await import('../../worker/src/index.js');
+    // From /app/src/server.js → ../worker/src/index.js = /app/worker/src/index.js,
+    // matching the layout the API Dockerfile creates with COPY worker/src ./worker/src.
+    const { consume } = await import('../worker/src/index.js');
     consume().catch((err) => {
       logger.error({ err }, 'embedded worker loop crashed');
     });
