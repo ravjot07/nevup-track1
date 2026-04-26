@@ -6,13 +6,46 @@ export const CONSUMER_GROUP = 'metrics-workers';
 
 let redisClient;
 
+/**
+ * Build ioredis options that "do the right thing" for the URL we're given.
+ *
+ * Upstash (and most managed Redis providers) require TLS on the only public
+ * port. Their docs sometimes show `redis://` URLs even though the listener
+ * is TLS-only, so users routinely copy the wrong scheme. We detect known
+ * TLS-only providers by hostname and force the `tls` option so both
+ * `rediss://` and `redis://` URLs Just Work for them. For local Compose
+ * (`redis://redis:6379`) we leave TLS off.
+ */
+function buildRedisOptions(url) {
+  const opts = {
+    // 5 retries × ~exponential backoff is enough to ride out a brief
+    // re-balance / DNS blip without permanently killing the boot.
+    maxRetriesPerRequest: 5,
+    connectTimeout: 15_000,
+    enableReadyCheck: true,
+    lazyConnect: false,
+  };
+  if (!url) return opts;
+  try {
+    const parsed = new URL(url);
+    const tlsByScheme = parsed.protocol === 'rediss:';
+    const tlsByHost =
+      /\.upstash\.io$/i.test(parsed.hostname) ||
+      /\.aivencloud\.com$/i.test(parsed.hostname) ||
+      /\.redislabs\.com$/i.test(parsed.hostname);
+    if (tlsByScheme || tlsByHost) {
+      opts.tls = { rejectUnauthorized: true, servername: parsed.hostname };
+    }
+  } catch {
+    // Malformed URL — let ioredis surface the error itself.
+  }
+  return opts;
+}
+
 export function getRedis() {
   if (!redisClient) {
-    redisClient = new Redis(process.env.REDIS_URL || 'redis://redis:6379', {
-      maxRetriesPerRequest: 3,
-      enableReadyCheck: true,
-      lazyConnect: false,
-    });
+    const url = process.env.REDIS_URL || 'redis://redis:6379';
+    redisClient = new Redis(url, buildRedisOptions(url));
     redisClient.on('error', (err) => logger.error({ err }, 'redis error'));
   }
   return redisClient;

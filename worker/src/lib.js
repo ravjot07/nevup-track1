@@ -29,9 +29,34 @@ export const pool = new Pool({
   query_timeout: 10_000,
 });
 
-export const redis = new Redis(process.env.REDIS_URL || 'redis://redis:6379', {
-  maxRetriesPerRequest: 3,
-});
+// Mirror of buildRedisOptions in api/src/queue/producer.js so the
+// standalone worker container is just as resilient on managed
+// (TLS-only) providers like Upstash.
+function buildRedisOptions(url) {
+  const opts = {
+    maxRetriesPerRequest: 5,
+    connectTimeout: 15_000,
+    enableReadyCheck: true,
+  };
+  if (!url) return opts;
+  try {
+    const parsed = new URL(url);
+    const tlsByScheme = parsed.protocol === 'rediss:';
+    const tlsByHost =
+      /\.upstash\.io$/i.test(parsed.hostname) ||
+      /\.aivencloud\.com$/i.test(parsed.hostname) ||
+      /\.redislabs\.com$/i.test(parsed.hostname);
+    if (tlsByScheme || tlsByHost) {
+      opts.tls = { rejectUnauthorized: true, servername: parsed.hostname };
+    }
+  } catch {
+    // ignore — let ioredis surface the malformed-URL error
+  }
+  return opts;
+}
+
+const REDIS_URL = process.env.REDIS_URL || 'redis://redis:6379';
+export const redis = new Redis(REDIS_URL, buildRedisOptions(REDIS_URL));
 
 export const STREAM_KEY = 'nevup:events';
 export const CONSUMER_GROUP = 'metrics-workers';

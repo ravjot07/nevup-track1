@@ -184,6 +184,22 @@ export async function start() {
     logger.info('seeding db (idempotent)');
     await seedFromCsv();
   }
+
+  // Log a redacted form of REDIS_URL at boot so deploy logs immediately
+  // show *which* Redis we're talking to and over which scheme. Saves a
+  // round-trip with reviewers when a wrong env var is the problem.
+  if (process.env.REDIS_URL) {
+    try {
+      const u = new URL(process.env.REDIS_URL);
+      logger.info(
+        { host: u.hostname, port: u.port, scheme: u.protocol.replace(':', '') },
+        'connecting to redis'
+      );
+    } catch {
+      logger.warn('REDIS_URL is set but unparseable as a URL');
+    }
+  }
+
   await ensureConsumerGroup();
 
   const app = await buildApp();
