@@ -161,11 +161,9 @@ checks if `trades` is already populated, no-ops if so) so a `docker compose
 restart` doesn't double-load. The web admin UI is a multi-stage build
 (Vite → static files → Nginx) so the final image is ~25 MB.
 
-## 12. Deployment (Fly.io)
+## 12. Deployment (Render.com)
 
-The same `docker-compose.yml` runs on Fly via three independent Fly apps
-(`nevup-api`, `nevup-worker`, `nevup-web`) plus Fly Postgres and Upstash
-Redis. The Fly configuration files live at `fly/api.toml`, `fly/worker.toml`,
-and `fly/web.toml`. Fly is the right call here over Render/Railway/AWS
-because it gives us free Postgres + simple TCP-app deploys, and the same
-Dockerfiles work locally and remotely with no rewrites.
+Production is deployed with the `render.yaml` Blueprint: free Postgres,
+two Docker web services (`nevup-api` with embedded worker, `nevup-web`),
+and Upstash Redis (`REDIS_URL` secret). The same Dockerfiles as
+`docker-compose.yml` are used; no separate Fly.io config is maintained.

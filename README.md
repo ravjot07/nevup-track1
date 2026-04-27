@@ -270,7 +270,8 @@ nevup-track1/
 │   └── results/{report.html,summary.json}
 ├── scripts/            # mint-token.js (host-side dev token util)
 ├── docs/               # EXPLAIN plans, runbook
-├── fly/                # Fly.io deploy config (api/worker/web)
+├── render.yaml         # Render.com Blueprint (API + web + Postgres)
+├── render-deploy.md    # Render + Upstash setup steps
 ├── docker-compose.yml
 ├── nevup_openapi.yaml  # canonical contract (unmodified)
 ├── nevup_seed_dataset.csv
@@ -283,18 +284,17 @@ nevup-track1/
 
 ## Deployment
 
-A live deployment URL is required for hackathon scoring. The same
-`docker-compose.yml` runs on Fly.io as three Fly apps (`nevup-api`,
-`nevup-worker`, `nevup-web`) backed by Fly Postgres + Upstash Redis. See
-[`fly/README.md`](./fly/README.md) for the exact deploy commands.
+A live deployment URL is required for hackathon scoring. Production uses
+**Render.com** (`render.yaml` Blueprint: Postgres + `nevup-api` + `nevup-web`,
+with **Upstash Redis** for the stream). See [`render-deploy.md`](./render-deploy.md)
+for setup and verification.
 
 ---
 
 ## Submission checklist
 
-- [ ] Live deployment URL — see [`fly/README.md`](./fly/README.md) for the
-      one-shot Fly.io deploy. (Run `fly auth login && fly deploy …` once
-      and paste the URL into this checklist before submitting.)
+- [ ] Live deployment URL — deploy via Render Blueprint (`render.yaml`) and
+      paste your public API URL (e.g. `https://nevup-api.onrender.com`).
 - [x] OpenAPI 3.0 spec — `nevup_openapi.yaml` (consumed verbatim, also
       served live at `GET /docs` and `GET /docs.json`)
 - [x] k6 load script — `load/trades.k6.js`
