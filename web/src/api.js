@@ -1,12 +1,25 @@
 function resolveBase() {
-  const fromBuild = import.meta.env.VITE_API_BASE_URL;
-  if (fromBuild) return fromBuild;
+  const fromBuild = import.meta.env.VITE_API_BASE_URL || '';
   if (typeof window !== 'undefined' && window.location?.host) {
-    const host = window.location.host;
+    const { protocol, host, hostname } = window.location;
     if (host.endsWith('.onrender.com')) {
-      return `${window.location.protocol}//${host.replace('-web', '-api')}`;
+      return `${protocol}//${host.replace('-web', '-api')}`;
+    }
+    if (host.endsWith('.fly.dev') && host.includes('-web')) {
+      return `${protocol}//${host.replace('-web', '-api')}`;
+    }
+    const pointsAtLoopback =
+      /localhost|127\.0\.0\.1/i.test(fromBuild) || fromBuild === '';
+    if (
+      pointsAtLoopback &&
+      hostname &&
+      hostname !== 'localhost' &&
+      hostname !== '127.0.0.1'
+    ) {
+      return `${protocol}//${hostname}:3000`;
     }
   }
+  if (fromBuild) return fromBuild;
   return 'http://localhost:3000';
 }
 
