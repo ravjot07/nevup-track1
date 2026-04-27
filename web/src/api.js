@@ -1,21 +1,32 @@
+function isPrivateLanHost(hostname) {
+  if (!hostname || hostname === 'localhost' || hostname === '127.0.0.1') {
+    return false;
+  }
+  if (hostname.endsWith('.onrender.com') || hostname.endsWith('.fly.dev')) {
+    return false;
+  }
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  if (/^172\.(1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  if (hostname.endsWith('.local')) return true;
+  return false;
+}
+
 function resolveBase() {
   const fromBuild = import.meta.env.VITE_API_BASE_URL || '';
-  if (typeof window !== 'undefined' && window.location?.host) {
-    const { protocol, host, hostname } = window.location;
-    if (host.endsWith('.onrender.com')) {
-      return `${protocol}//${host.replace('-web', '-api')}`;
+  if (typeof window !== 'undefined' && window.location?.hostname) {
+    const { protocol, hostname } = window.location;
+
+    if (hostname.endsWith('.onrender.com')) {
+      return `${protocol}//${hostname.replace('-web', '-api')}`;
     }
-    if (host.endsWith('.fly.dev') && host.includes('-web')) {
-      return `${protocol}//${host.replace('-web', '-api')}`;
+    if (hostname.endsWith('.fly.dev') && hostname.includes('-web')) {
+      return `${protocol}//${hostname.replace('-web', '-api')}`;
     }
+
     const pointsAtLoopback =
       /localhost|127\.0\.0\.1/i.test(fromBuild) || fromBuild === '';
-    if (
-      pointsAtLoopback &&
-      hostname &&
-      hostname !== 'localhost' &&
-      hostname !== '127.0.0.1'
-    ) {
+    if (pointsAtLoopback && isPrivateLanHost(hostname)) {
       return `${protocol}//${hostname}:3000`;
     }
   }
